@@ -1,103 +1,90 @@
-# Mini Order & Inventory Management API
+# Mini Order & Inventory Management System
 
-A Spring Boot REST API for managing products, customers, orders and sales reports.
+## Project overview
 
-## Tech stack
+This is a small backend I built to simulate an e-commerce / order-processing system. It manages products and their stock, customers, and orders. When an order is placed the stock is checked and reduced, the price of each product is stored at the time of ordering, and orders can later be cancelled to put the stock back. There are also a few reporting endpoints for customer spending and product sales.
 
-- Java 21, Spring Boot 4
-- Spring Web MVC, Spring Data JPA, Bean Validation
+## Technologies used
+
+- Java 21
+- Spring Boot 4 (Spring Web MVC, Spring Data JPA, Bean Validation)
+- Hibernate
 - PostgreSQL
-- springdoc-openapi (Swagger UI)
+- Maven
+- springdoc-openapi (Swagger UI) for the API documentation
 
-## Running
+## Database configuration and setup instructions
 
-1. Start PostgreSQL and create a database named `orderdb` (credentials in `src/main/resources/application.properties`).
-2. Run the app:
-   ```bash
-   ./mvnw spring-boot:run
-   ```
+I used PostgreSQL. Before running the app, create a database called `orderdb`:
 
-## API documentation (Swagger / OpenAPI)
+```sql
+CREATE DATABASE orderdb;
+```
 
-Every endpoint is documented with OpenAPI annotations. Once the app is running:
+The connection settings are in `src/main/resources/application.properties`:
 
-- **Swagger UI:** http://localhost:8080/swagger-ui.html
-- **OpenAPI JSON:** http://localhost:8080/v3/api-docs
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/orderdb
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+spring.jpa.hibernate.ddl-auto=update
+```
 
-Swagger UI lets you browse every endpoint, view request/response schemas with examples, and try requests directly from the browser.
+Change the username/password if yours are different. I left `ddl-auto=update` on, so Hibernate creates and updates the tables automatically the first time the app starts — no manual schema script is needed.
 
-## Endpoints
+## How to run the application
 
-| Method | Path | Description |
-|--------|------|-------------|
+From the project root:
+
+```bash
+./mvnw spring-boot:run
+```
+
+The app starts on `http://localhost:8080`.
+
+To run the tests:
+
+```bash
+./mvnw test
+```
+
+## API documentation
+
+I documented the API with Swagger/OpenAPI. Once the app is running you can open it in the browser:
+
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
+Swagger UI lists every endpoint with its request/response schema and lets you try requests directly.
+
+### Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
 | POST | `/products` | Create a product |
 | GET | `/products` | List all products |
-| GET | `/products/{id}` | Get a product by id |
+| GET | `/products/{id}` | Get a product |
 | GET | `/products/search?name=` | Search products by name |
 | PUT | `/products/{id}` | Update a product |
 | PATCH | `/products/{id}/deactivate` | Deactivate a product |
 | POST | `/customer` | Create a customer |
 | GET | `/customer` | List all customers |
-| GET | `/customer/{id}` | Get a customer by id |
+| GET | `/customer/{id}` | Get a customer |
 | PUT | `/customer/{id}` | Update a customer |
-| GET | `/customer/{id}/orders` | List a customer's orders |
+| GET | `/customer/{id}/orders` | Get a customer's orders |
 | POST | `/orders` | Place an order |
 | GET | `/orders` | List all orders |
-| GET | `/orders/{id}` | Get an order by id |
-| GET | `/orders/customer/{customerId}` | List orders for a customer |
+| GET | `/orders/{id}` | Get an order |
+| GET | `/orders/customer/{customerId}` | Get orders for a customer |
 | PUT | `/orders/{id}/cancel` | Cancel an order |
 | GET | `/reports/customers/{customerId}` | Customer spending report |
 | GET | `/reports/products` | Product sales report |
-| GET | `/reports/top-products?limit=` | Top selling products |
+| GET | `/reports/top-products?limit=5` | Top selling products |
 
-## Sample request / response payloads
+### Sample request / response
 
-### Create a product — `POST /products`
+Place an order — `POST /orders`:
 
-Request:
-```json
-{
-  "name": "Laptop",
-  "category": "Electronics",
-  "price": 50000.00,
-  "availableQuantity": 10
-}
-```
-Response `201 Created`:
-```json
-{
-  "id": 1,
-  "name": "Laptop",
-  "category": "Electronics",
-  "price": 50000.00,
-  "availableQuantity": 10,
-  "active": true
-}
-```
-
-### Create a customer — `POST /customer`
-
-Request:
-```json
-{
-  "name": "Alice",
-  "email": "alice@gmail.com",
-  "phone": "9999999999"
-}
-```
-Response `201 Created`:
-```json
-{
-  "id": 1,
-  "name": "Alice",
-  "email": "alice@gmail.com",
-  "phone": "9999999999"
-}
-```
-
-### Place an order — `POST /orders`
-
-Request:
 ```json
 {
   "customerId": 1,
@@ -106,7 +93,9 @@ Request:
   ]
 }
 ```
+
 Response `201 Created`:
+
 ```json
 {
   "id": 1,
@@ -126,35 +115,7 @@ Response `201 Created`:
 }
 ```
 
-### Customer report — `GET /reports/customers/1`
-
-Response `200 OK`:
-```json
-{
-  "customerName": "Alice",
-  "numberOfOrders": 3,
-  "totalAmountSpent": 150000.00,
-  "averageOrderValue": 50000.00
-}
-```
-
-### Product sales report — `GET /reports/products`
-
-Response `200 OK`:
-```json
-[
-  {
-    "productId": 1,
-    "productName": "Laptop",
-    "quantitySold": 12,
-    "totalRevenue": 600000.00
-  }
-]
-```
-
-## Error responses
-
-All failures return a consistent structure:
+All errors come back in the same shape:
 
 ```json
 {
@@ -165,88 +126,38 @@ All failures return a consistent structure:
 }
 ```
 
-| Status | When |
-|--------|------|
-| 400 | Validation failure, inactive product, insufficient stock, invalid operation |
-| 404 | Resource not found |
-| 409 | Duplicate email |
-
 ## Database / schema information
 
-The schema is generated by Hibernate from the JPA entities (`spring.jpa.hibernate.ddl-auto=update`). Four tables model the domain, with the relationship chain **Customer → Order → OrderItem → Product**.
+There are four tables and the relationship chain is **Customer → Order → OrderItem → Product**.
 
-### `customers`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | BIGINT | PK, auto-increment |
-| name | VARCHAR | not blank |
-| email | VARCHAR | unique |
-| phone | VARCHAR | not blank |
-| created_at | TIMESTAMP | set on insert |
-| updated_at | TIMESTAMP | set on insert/update |
+**customers** — `id` (PK), `name`, `email` (unique), `phone`, `created_at`, `updated_at`
 
-### `products`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | BIGINT | PK, auto-increment |
-| name | VARCHAR | not blank |
-| category | VARCHAR | not blank |
-| price | NUMERIC | > 0 |
-| available_quantity | INTEGER | >= 0 |
-| active | BOOLEAN | defaults to true; set false on deactivation |
-| created_at | TIMESTAMP | set on insert |
-| updated_at | TIMESTAMP | set on insert/update |
+**products** — `id` (PK), `name`, `category`, `price`, `available_quantity`, `active`, `created_at`, `updated_at`
 
-### `orders`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | BIGINT | PK, auto-increment |
-| customer_id | BIGINT | FK → `customers.id` (many orders per customer) |
-| total_amount | NUMERIC | computed from the order's items |
-| order_date | TIMESTAMP | set on insert |
-| status | VARCHAR | enum stored as string: `ACTIVE`, `COMPLETED`, `CANCELLED` (defaults to `ACTIVE`) |
+**orders** — `id` (PK), `customer_id` (FK → customers), `total_amount`, `order_date`, `status` (`ACTIVE`, `COMPLETED`, `CANCELLED`)
 
-### `order_items`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | BIGINT | PK, auto-increment |
-| order_id | BIGINT | FK → `orders.id` (many items per order, cascade ALL) |
-| product_id | BIGINT | FK → `products.id` |
-| quantity | INTEGER | units ordered |
-| unit_price | NUMERIC | product price captured at order time (preserved even if the product price later changes) |
+**order_items** — `id` (PK), `order_id` (FK → orders), `product_id` (FK → products), `quantity`, `unit_price`
 
-### Relationships
-
-```
-Customer (1) ──< (many) Order (1) ──< (many) OrderItem (many) >── (1) Product
-```
+Relationships:
 
 - A customer can have many orders.
-- An order can have many order items (`cascade = ALL`, so items are persisted/removed with the order).
-- Each order item references exactly one product and stores its own `unit_price` snapshot, so historical orders keep their original pricing.
+- An order can have many order items (saved and removed together with the order).
+- Each order item points to one product and keeps its own `unit_price`, so an order always shows the price at the time it was placed, even if the product price changes later.
 
 ## Important assumptions
 
-- **Products are soft-deleted, never hard-deleted.** There is no delete endpoint; `PATCH /products/{id}/deactivate` sets `active = false`. Deactivation is rejected if the product already appears in any order.
-- **Prices are frozen at order time.** `order_items.unit_price` is copied from the product when the order is placed, so later price changes do not affect existing orders.
-- **Only `ACTIVE` orders count in reports.** Customer and product report queries filter on `status = 'ACTIVE'`; `CANCELLED` (and `COMPLETED`) orders are excluded from totals.
-- **Cancelling restores stock.** Cancelling an `ACTIVE` order returns each item's quantity to `products.available_quantity`. `COMPLETED` and already-`CANCELLED` orders cannot be cancelled.
-- **Order creation is all-or-nothing.** The whole operation runs in a single transaction; if any item fails validation (missing/inactive product, insufficient stock), the order is not created and no inventory is changed.
-- **Customer email is unique** and validated; requests with a duplicate email return `409 Conflict`.
-- **IDs are database-generated** (identity/auto-increment); the `id` values shown in the samples are illustrative — use the values returned by the create calls.
-- The application assumes a reachable PostgreSQL instance with a database named `orderdb` and the credentials in `application.properties`.
+- Products are never physically deleted. There is no delete endpoint — deactivation just sets `active = false`, and I block deactivating a product that is already used in an order.
+- The product price is copied into the order item at order time, so changing a product's price later does not affect past orders.
+- Order creation is a single transaction. If any item is invalid (product missing/inactive or not enough stock) the whole order fails and no stock is reduced.
+- Cancelling an `ACTIVE` order returns the stock. A `COMPLETED` or already `CANCELLED` order cannot be cancelled.
+- Reports only count `ACTIVE` orders, so cancelled orders are not included in the totals.
+- Customer email must be unique. A duplicate email returns `409 Conflict`.
+- IDs are generated by the database, so the ids in the samples above are just examples.
 
 ## Known limitations
 
-- **No authentication/authorization.** All endpoints are open; this is a backend assignment, not a production service.
-- **`ddl-auto=update` does not rewrite existing constraints.** Because Hibernate auto-generates a `CHECK` constraint for the `status` enum, changing the enum values (or column constraints) on an **already-created** database is not applied automatically — the old constraint remains and inserts can fail. On an existing DB such changes must be applied manually, e.g.:
-  ```sql
-  ALTER TABLE orders DROP CONSTRAINT orders_status_check;
-  ALTER TABLE orders ADD CONSTRAINT orders_status_check
-    CHECK (status IN ('ACTIVE','COMPLETED','CANCELLED'));
-  ```
-  A fresh database always generates the correct constraint from the current entities. For real deployments a migration tool (Flyway/Liquibase) would be preferable to `ddl-auto=update`.
-- **No pagination** on list endpoints (`GET /products`, `GET /orders`, etc.); every row is returned.
-- **No "complete order" transition.** `COMPLETED` is a supported status but there is currently no endpoint that moves an order into it.
-- **Reports exclude non-`ACTIVE` orders**, so cancelled orders never contribute to spending/sales figures (by design).
-- **Average order value** in the customer report is derived via `AVG` and may carry floating-point rounding; no explicit scale/rounding is applied.
+- No authentication or authorization — every endpoint is open.
+- List endpoints return all rows; I did not add pagination.
+- There is no endpoint to move an order to `COMPLETED`, even though the status exists.
+- I used `ddl-auto=update`, which is fine for this assignment but not ideal for production — a migration tool like Flyway or Liquibase would be better. Also, because Hibernate creates a check constraint on the `status` column, changing the status values on an existing database needs a manual `ALTER TABLE`.
+- The average order value in the customer report comes from SQL `AVG`, so it can carry small floating-point rounding.
