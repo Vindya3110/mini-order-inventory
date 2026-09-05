@@ -15,5 +15,5 @@ public interface ProductService {
 
     ProductResponseDTO updateProduct(Long id, ProductRequestDTO request);
 
-    void deactivateProduct(Long id);
+    ProductResponseDTO deactivateProduct(Long id);
 } 

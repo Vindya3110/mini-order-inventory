@@ -8,7 +8,9 @@ import org.springframework.stereotype.Service;
 import com.vindya.mini_order_inventory.dto.ProductRequestDTO;
 import com.vindya.mini_order_inventory.dto.ProductResponseDTO;
 import com.vindya.mini_order_inventory.entity.Product;
+import com.vindya.mini_order_inventory.exception.InvalidOperationException;
 import com.vindya.mini_order_inventory.exception.ResourceNotFoundException;
+import com.vindya.mini_order_inventory.repository.OrderItemRepository;
 import com.vindya.mini_order_inventory.repository.ProductRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductServiceImpl implements ProductService {
     
     private final ProductRepository productRepository;
+    private final OrderItemRepository orderItemRepository;
 
     private ProductResponseDTO mapToResponse(Product product){
         ProductResponseDTO response = new ProductResponseDTO();
@@ -87,8 +90,13 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public void deactivateProduct(Long id) {
+    public ProductResponseDTO deactivateProduct(Long id) {
         Product product=productRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        if(orderItemRepository.existsByProductId(id)){
+            throw new InvalidOperationException("Product cannot be deactivated because it has existing orders");
+        }
         product.setActive(false);
+        product=productRepository.save(product);
+        return mapToResponse(product);
     }
 }

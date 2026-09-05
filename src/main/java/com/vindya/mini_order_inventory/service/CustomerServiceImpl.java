@@ -2,6 +2,7 @@ package com.vindya.mini_order_inventory.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -68,8 +69,25 @@ public class CustomerServiceImpl implements CustomerService{
 
     @Override
     public CustomerResponseDTO updateCustomer(Long id, CustomerRequestDTO request) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'updateCustomer'");
+        Customer customer = customerRepository.findById(id)
+    .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+
+    Optional<Customer> existingCustomer =
+        customerRepository.findByEmail(request.getEmail());
+
+    if (existingCustomer.isPresent() &&
+    !existingCustomer.get().getId().equals(id)) {
+        throw new DuplicateResourceException("Email already exists");
+        }    
+    
+    customer.setName(request.getName());
+    customer.setEmail(request.getEmail());
+    customer.setPhone(request.getPhone());
+
+    Customer updatedCustomer = customerRepository.save(customer);
+
+    return mapToResponse(updatedCustomer);
+        
     }
     
 }
